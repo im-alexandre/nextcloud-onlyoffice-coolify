@@ -81,8 +81,8 @@ services:
     image: onlyoffice/documentserver:latest
     restart: unless-stopped
     environment:
-      JWT_ENABLED: "true"
-      JWT_SECRET: "mude_esta_chave_grande_e_secreta"   # <- TROCAR e usar a mesma no app do Nextcloud
+      JWT_ENABLED: "false"
+      # JWT_SECRET: "mude_esta_chave_grande_e_secreta"   # <- TROCAR e usar a mesma no app do Nextcloud
       # Se quiser mudar o header do JWT:
       # JWT_HEADER: "Authorization"
     volumes:
