@@ -88,6 +88,7 @@ services:
     volumes:
       - onlyoffice_data:/var/www/onlyoffice/Data
       - /data/coolify/ssl/coolify-ca.crt:/etc/ssl/certs/coolify-ca.crt:ro
+      - /data/coolify/ssl/coolify-ca.crt:/var/www/onlyoffice/Data/certs/coolify-ca.crt:ro
     labels:
       - traefik.enable=true
       - traefik.http.routers.onlyoffice.rule=Host(`docs.drg.ink`)
