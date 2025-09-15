@@ -13,7 +13,7 @@ networks:
 
 services:
   db:
-    image: postgres:alpine
+    image: postgres:16-alpine
     restart: unless-stopped
     environment:
       POSTGRES_DB: nextcloud
@@ -25,7 +25,7 @@ services:
       - traefik.enable=false
 
   redis:
-    image: redis:alpine
+    image: redis:7-alpine
     restart: unless-stopped
     command: ["redis-server","--save","","--appendonly","no"]
     volumes:
@@ -34,7 +34,7 @@ services:
       - traefik.enable=false
 
   nextcloud:
-    image: nextcloud:apache
+    image: nextcloud:29-apache
     restart: unless-stopped
     depends_on:
       - db
