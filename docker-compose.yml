@@ -1,0 +1,97 @@
+version: "3.8"
+
+volumes:
+  db_data:
+  redis_data:
+  nextcloud_data:
+  onlyoffice_data:
+
+networks:
+  office_net:
+    driver: bridge
+    ipam:
+      config:
+        - subnet: 10.0.2.0/24
+  # Se o Traefik do Coolify exigir rede externa, descomente e ajuste:
+  # traefik_net:
+  #   external: true
+  #   name: coolify-overlay  # ou o nome que aparecer em `docker network ls`
+
+services:
+  db:
+    image: postgres:16-alpine
+    container_name: nextcloud-db
+    environment:
+      POSTGRES_DB: nextcloud
+      POSTGRES_USER: nextcloud
+      POSTGRES_PASSWORD: supersecret  # TROQUE
+    volumes:
+      - db_data:/var/lib/postgresql/data
+    networks:
+      - office_net
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U nextcloud -d nextcloud"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  redis:
+    image: redis:7-alpine
+    container_name: nextcloud-redis
+    command: ["redis-server","--save","","--appendonly","no"]
+    volumes:
+      - redis_data:/data
+    networks:
+      - office_net
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  nextcloud:
+    image: nextcloud:29-apache
+    container_name: nextcloud
+    depends_on:
+      - db
+      - redis
+    environment:
+      POSTGRES_HOST: db
+      POSTGRES_DB: nextcloud
+      POSTGRES_USER: nextcloud
+      POSTGRES_PASSWORD: supersecret   # MESMA de cima
+      REDIS_HOST: redis
+      PHP_UPLOAD_LIMIT: 1024M
+      PHP_MEMORY_LIMIT: 1024M
+      NEXTCLOUD_TRUSTED_DOMAINS: cloud.drg.ink
+      OVERWRITEHOST: cloud.drg.ink
+      OVERWRITEPROTOCOL: https
+    volumes:
+      - nextcloud_data:/var/www/html
+    labels:
+      - traefik.enable=true
+      - traefik.http.routers.nextcloud.rule=Host(`cloud.drg.ink`)
+      - traefik.http.routers.nextcloud.entrypoints=websecure
+      - traefik.http.routers.nextcloud.tls=true
+      - traefik.http.services.nextcloud.loadbalancer.server.port=80
+    networks:
+      - office_net
+      # - traefik_net   # descomente se precisar anexar à rede do Traefik do Coolify
+
+  onlyoffice:
+    image: onlyoffice/documentserver:latest
+    container_name: onlyoffice
+    environment:
+      JWT_ENABLED: "true"
+      JWT_SECRET: "mude_esta_chave_grande_e_secreta"  # use a mesma no app do Nextcloud
+    volumes:
+      - onlyoffice_data:/var/www/onlyoffice/Data
+    labels:
+      - traefik.enable=true
+      - traefik.http.routers.onlyoffice.rule=Host(`docs.drg.ink`)
+      - traefik.http.routers.onlyoffice.entrypoints=websecure
+      - traefik.http.routers.onlyoffice.tls=true
+      - traefik.http.services.onlyoffice.loadbalancer.server.port=80
+    networks:
+      - office_net
+      # - traefik_net   # descomente se precisar anexar à rede do Traefik do Coolify
