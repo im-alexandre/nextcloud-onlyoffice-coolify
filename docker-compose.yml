@@ -6,36 +6,24 @@ volumes:
   nextcloud_data:
   onlyoffice_data:
 
-networks:
-  traefik_net:
-    external: true
-    name: coolify   # usa a rede já existente do Coolify (10.0.2.0/24)
-
 services:
   db:
-    image: postgres:alpine
-    container_name: nextcloud-db
+    image: postgres:16-alpine
     environment:
       POSTGRES_DB: nextcloud
       POSTGRES_USER: nextcloud
-      POSTGRES_PASSWORD: supersecret   # TROQUE
+      POSTGRES_PASSWORD: supersecret
     volumes:
       - db_data:/var/lib/postgresql/data
-    networks:
-      - traefik_net
 
   redis:
-    image: redis:alpine
-    container_name: nextcloud-redis
+    image: redis:7-alpine
     command: ["redis-server","--save","","--appendonly","no"]
     volumes:
       - redis_data:/data
-    networks:
-      - traefik_net
 
   nextcloud:
-    image: nextcloud:apache
-    container_name: nextcloud
+    image: nextcloud:29-apache
     depends_on:
       - db
       - redis
@@ -47,22 +35,14 @@ services:
       REDIS_HOST: redis
       PHP_UPLOAD_LIMIT: 1024M
       PHP_MEMORY_LIMIT: 1024M
-      NEXTCLOUD_TRUSTED_DOMAINS: cloud.drg.ink
-      OVERWRITEHOST: cloud.drg.ink
-      OVERWRITEPROTOCOL: https
     volumes:
       - nextcloud_data:/var/www/html
-    networks:
-      - traefik_net
+
 
   onlyoffice:
     image: onlyoffice/documentserver:latest
-    container_name: onlyoffice
     environment:
       JWT_ENABLED: "true"
-      JWT_SECRET: "mude_esta_chave_grande_e_secreta"  # use a mesma no app do Nextcloud
+      JWT_SECRET: "mude_esta_chave_grande_e_secreta"
     volumes:
       - onlyoffice_data:/var/www/onlyoffice/Data
-
-    networks:
-      - traefik_net
