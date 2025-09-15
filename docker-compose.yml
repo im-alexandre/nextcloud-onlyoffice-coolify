@@ -62,6 +62,7 @@ services:
       PHP_MEMORY_LIMIT: 1024M
     volumes:
       - nextcloud_data:/var/www/html
+      - /data/coolify/ssl/coolify-ca.crt:/etc/ssl/certs/coolify-ca.crt:ro
     labels:
       - traefik.enable=true
       - traefik.http.routers.nextcloud.rule=Host(`cloud.drg.ink`)
@@ -87,11 +88,6 @@ services:
     volumes:
       - onlyoffice_data:/var/www/onlyoffice/Data
       - /data/coolify/ssl/coolify-ca.crt:/etc/ssl/certs/coolify-ca.crt:ro
-    dns:
-      - 1.1.1.1     # Cloudflare
-      - 8.8.8.8     # Google
-    extra_hosts:
-      - "cloud.drg.ink:162.214.164.53"
     labels:
       - traefik.enable=true
       - traefik.http.routers.onlyoffice.rule=Host(`docs.drg.ink`)
