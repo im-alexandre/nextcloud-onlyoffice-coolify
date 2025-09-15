@@ -82,11 +82,15 @@ services:
     restart: unless-stopped
     environment:
       JWT_ENABLED: "false"
-      # JWT_SECRET: "mude_esta_chave_grande_e_secreta"   # <- TROCAR e usar a mesma no app do Nextcloud
-      # Se quiser mudar o header do JWT:
+      # JWT_SECRET: "mude_esta_chave_grande_e_secreta"
       # JWT_HEADER: "Authorization"
     volumes:
       - onlyoffice_data:/var/www/onlyoffice/Data
+    dns:
+      - 1.1.1.1     # Cloudflare
+      - 8.8.8.8     # Google
+    extra_hosts:
+      - "cloud.drg.ink:162.214.164.53"
     labels:
       - traefik.enable=true
       - traefik.http.routers.onlyoffice.rule=Host(`docs.drg.ink`)
