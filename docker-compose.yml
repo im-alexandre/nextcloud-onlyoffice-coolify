@@ -12,7 +12,7 @@ services:
     environment:
       POSTGRES_DB: nextcloud
       POSTGRES_USER: nextcloud
-      POSTGRES_PASSWORD: supersecret
+      POSTGRES_PASSWORD: supersecret   # TROQUE
     volumes:
       - db_data:/var/lib/postgresql/data
 
@@ -31,10 +31,13 @@ services:
       POSTGRES_HOST: db
       POSTGRES_DB: nextcloud
       POSTGRES_USER: nextcloud
-      POSTGRES_PASSWORD: supersecret
+      POSTGRES_PASSWORD: supersecret   # MESMA de cima
       REDIS_HOST: redis
       PHP_UPLOAD_LIMIT: 1024M
       PHP_MEMORY_LIMIT: 1024M
+      # NEXTCLOUD_TRUSTED_DOMAINS: cloud.drg.ink
+      # OVERWRITEHOST: cloud.drg.ink
+      # OVERWRITEPROTOCOL: https
     volumes:
       - nextcloud_data:/var/www/html
 
@@ -43,6 +46,7 @@ services:
     image: onlyoffice/documentserver:latest
     environment:
       JWT_ENABLED: "true"
-      JWT_SECRET: "mude_esta_chave_grande_e_secreta"
+      JWT_SECRET: "mude_esta_chave_grande_e_secreta"  # USE a mesma no app do Nextcloud
     volumes:
       - onlyoffice_data:/var/www/onlyoffice/Data
+
