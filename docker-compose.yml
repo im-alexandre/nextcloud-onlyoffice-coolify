@@ -35,9 +35,9 @@ services:
       REDIS_HOST: redis
       PHP_UPLOAD_LIMIT: 1024M
       PHP_MEMORY_LIMIT: 1024M
-      # NEXTCLOUD_TRUSTED_DOMAINS: cloud.drg.ink
-      # OVERWRITEHOST: cloud.drg.ink
-      # OVERWRITEPROTOCOL: https
+      NEXTCLOUD_TRUSTED_DOMAINS: cloud.drg.ink
+      OVERWRITEHOST: cloud.drg.ink
+      OVERWRITEPROTOCOL: https
     volumes:
       - nextcloud_data:/var/www/html
 
