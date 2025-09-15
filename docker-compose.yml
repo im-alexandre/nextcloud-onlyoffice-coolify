@@ -7,15 +7,9 @@ volumes:
   onlyoffice_data:
 
 networks:
-  office_net:
-    driver: bridge
-    ipam:
-      config:
-        - subnet: 10.0.2.0/24
-  # Se o Traefik do Coolify exigir rede externa, descomente e ajuste:
-  # traefik_net:
-  #   external: true
-  #   name: coolify-overlay  # ou o nome que aparecer em `docker network ls`
+  traefik_net:
+    external: true
+    name: coolify   # usa a rede já existente do Coolify (10.0.2.0/24)
 
 services:
   db:
@@ -24,16 +18,11 @@ services:
     environment:
       POSTGRES_DB: nextcloud
       POSTGRES_USER: nextcloud
-      POSTGRES_PASSWORD: supersecret  # TROQUE
+      POSTGRES_PASSWORD: supersecret   # TROQUE
     volumes:
       - db_data:/var/lib/postgresql/data
     networks:
-      - office_net
-    healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U nextcloud -d nextcloud"]
-      interval: 10s
-      timeout: 5s
-      retries: 5
+      - traefik_net
 
   redis:
     image: redis:7-alpine
@@ -42,12 +31,7 @@ services:
     volumes:
       - redis_data:/data
     networks:
-      - office_net
-    healthcheck:
-      test: ["CMD", "redis-cli", "ping"]
-      interval: 10s
-      timeout: 5s
-      retries: 5
+      - traefik_net
 
   nextcloud:
     image: nextcloud:29-apache
@@ -59,7 +43,7 @@ services:
       POSTGRES_HOST: db
       POSTGRES_DB: nextcloud
       POSTGRES_USER: nextcloud
-      POSTGRES_PASSWORD: supersecret   # MESMA de cima
+      POSTGRES_PASSWORD: supersecret
       REDIS_HOST: redis
       PHP_UPLOAD_LIMIT: 1024M
       PHP_MEMORY_LIMIT: 1024M
@@ -75,8 +59,7 @@ services:
       - traefik.http.routers.nextcloud.tls=true
       - traefik.http.services.nextcloud.loadbalancer.server.port=80
     networks:
-      - office_net
-      # - traefik_net   # descomente se precisar anexar à rede do Traefik do Coolify
+      - traefik_net
 
   onlyoffice:
     image: onlyoffice/documentserver:latest
@@ -93,5 +76,4 @@ services:
       - traefik.http.routers.onlyoffice.tls=true
       - traefik.http.services.onlyoffice.loadbalancer.server.port=80
     networks:
-      - office_net
-      # - traefik_net   # descomente se precisar anexar à rede do Traefik do Coolify
+      - traefik_net
