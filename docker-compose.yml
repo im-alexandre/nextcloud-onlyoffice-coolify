@@ -1,97 +1,75 @@
-version: "3.8"
+services:
+  db:
+    image: postgres:17-alpine
+    network_mode: host
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: nextcloud
+      POSTGRES_USER: nextcloud
+      POSTGRES_PASSWORD: troque_esta_senha_db
+    # Porta 5433 para não colidir com o Postgres interno do OnlyOffice (5432).
+    command: ["postgres", "-c", "port=5433"]
+    volumes:
+      - db_data:/var/lib/postgresql/data
+
+  redis:
+    image: redis:7-alpine
+    network_mode: host
+    restart: unless-stopped
+    # Porta 6380 para não colidir com o Redis interno do OnlyOffice (6379).
+    command: ["redis-server", "--port", "6380", "--save", "", "--appendonly", "no"]
+    volumes:
+      - redis_data:/data
+
+  nextcloud:
+    image: nextcloud:33-apache
+    network_mode: host
+    restart: unless-stopped
+    depends_on:
+      - db
+      - redis
+    environment:
+      POSTGRES_HOST: 127.0.0.1:5433
+      POSTGRES_DB: nextcloud
+      POSTGRES_USER: nextcloud
+      POSTGRES_PASSWORD: troque_esta_senha_db
+      REDIS_HOST: 127.0.0.1
+      REDIS_HOST_PORT: "6380"
+      NEXTCLOUD_ADMIN_USER: admin
+      NEXTCLOUD_ADMIN_PASSWORD: troque_esta_senha_admin
+      NEXTCLOUD_TRUSTED_DOMAINS: localhost
+      PHP_UPLOAD_LIMIT: 1024M
+      PHP_MEMORY_LIMIT: 1024M
+    volumes:
+      - nextcloud_data:/var/www/html
+    # Apache do Nextcloud realocado para 8080 antes do start, para não colidir
+    # com o OnlyOffice (que fica na 80). /entrypoint.sh da imagem faz exec "$@"
+    # no final, então este bloco roda depois do setup do Nextcloud.
+    command:
+      - bash
+      - -c
+      - |
+        sed -ri 's/Listen 80/Listen 8080/' /etc/apache2/ports.conf
+        sed -ri 's/<VirtualHost \*:80>/<VirtualHost *:8080>/' /etc/apache2/sites-enabled/000-default.conf
+        exec apache2-foreground
+
+  onlyoffice:
+    image: onlyoffice/documentserver:9.3.1.2
+    network_mode: host
+    restart: unless-stopped
+    environment:
+      JWT_ENABLED: "true"
+      JWT_SECRET: troque_este_segredo_jwt_bem_grande
+      JWT_HEADER: Authorization
+    volumes:
+      - onlyoffice_data:/var/www/onlyoffice/Data
+      - onlyoffice_log:/var/log/onlyoffice
+      - onlyoffice_lib:/var/lib/onlyoffice
 
 volumes:
   db_data:
   redis_data:
   nextcloud_data:
   onlyoffice_data:
-
-networks:
-  default:
-    external: true
-    name: coolify
-
-services:
-  db:
-    image: postgres:16-alpine
-    restart: unless-stopped
-    environment:
-      POSTGRES_DB: nextcloud
-      POSTGRES_USER: nextcloud
-      POSTGRES_PASSWORD: supersecret_db            # <- TROCAR
-    volumes:
-      - db_data:/var/lib/postgresql/data
-    labels:
-      - traefik.enable=false
-
-  redis:
-    image: redis:7-alpine
-    restart: unless-stopped
-    command: ["redis-server","--save","","--appendonly","no"]
-    volumes:
-      - redis_data:/data
-    labels:
-      - traefik.enable=false
-
-  nextcloud:
-    image: nextcloud:29-apache
-    restart: unless-stopped
-    depends_on:
-      - db
-      - redis
-    environment:
-      # DB
-      POSTGRES_HOST: db
-      POSTGRES_DB: nextcloud
-      POSTGRES_USER: nextcloud
-      POSTGRES_PASSWORD: supersecret_db            # <- MESMA do serviço db
-
-      # Redis
-      REDIS_HOST: redis
-
-      # Instalação automática (remova depois de instalado)
-      NEXTCLOUD_ADMIN_USER: admin                  # <- TROCAR
-      NEXTCLOUD_ADMIN_PASSWORD: admin  # <- TROCAR
-      NEXTCLOUD_TRUSTED_DOMAINS: cloud.drg.ink
-      OVERWRITEHOST: cloud.drg.ink
-      OVERWRITEPROTOCOL: https
-      APACHE_SERVER_NAME: cloud.drg.ink
-
-      # PHP limites (opcional)
-      PHP_UPLOAD_LIMIT: 1024M
-      PHP_MEMORY_LIMIT: 1024M
-    volumes:
-      - nextcloud_data:/var/www/html
-      - /data/coolify/ssl/coolify-ca.crt:/etc/ssl/certs/coolify-ca.crt:ro
-    labels:
-      - traefik.enable=true
-      - traefik.http.routers.nextcloud.rule=Host(`cloud.drg.ink`)
-      - traefik.http.routers.nextcloud.entrypoints=websecure
-      - traefik.http.routers.nextcloud.tls=true
-      - traefik.http.services.nextcloud.loadbalancer.server.port=80
-      # (Opcional) headers seguros
-      - traefik.http.routers.nextcloud.middlewares=nc-headers
-      - traefik.http.middlewares.nc-headers.headers.stsSeconds=31536000
-      - traefik.http.middlewares.nc-headers.headers.stsIncludeSubdomains=true
-      - traefik.http.middlewares.nc-headers.headers.stsPreload=true
-      - traefik.http.middlewares.nc-headers.headers.referrerPolicy=no-referrer
-      - traefik.http.middlewares.nc-headers.headers.browserXssFilter=true
-      - traefik.http.middlewares.nc-headers.headers.contentTypeNosniff=true
-
-  onlyoffice:
-    image: onlyoffice/documentserver:latest
-    restart: unless-stopped
-    environment:
-      JWT_ENABLED: "false"
-      # JWT_SECRET: "mude_esta_chave_grande_e_secreta"
-      # JWT_HEADER: "Authorization"
-    volumes:
-      - onlyoffice_data:/var/www/onlyoffice/Data
-      - /data/coolify/ssl/coolify-ca.crt:/etc/ssl/certs/coolify-ca.crt:ro
-      - /data/coolify/ssl/coolify-ca.crt:/var/www/onlyoffice/Data/certs/coolify-ca.crt:ro
-    labels:
-      - traefik.enable=true
-      - traefik.http.routers.onlyoffice.rule=Host(`docs.drg.ink`)
-      - traefik.http.routers.onlyoffice.entrypoints=websecure
-      - traefik.http.routers.onlyoffice.tls=true
-      - traefik.http.services.onlyoffice.loadbalancer.server.port=80
+  onlyoffice_log:
+  onlyoffice_lib:
